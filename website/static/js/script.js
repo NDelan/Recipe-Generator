@@ -60,10 +60,45 @@ document.addEventListener('DOMContentLoaded', function() {
     ];
 
     const selectedIngredients = new Set();
+    const inputEl = document.getElementById('ingredient-input');
+    const suggestionsContainer = document.getElementById('suggestions-container');
     const selectedIngredientsContainer = document.getElementById('selected-ingredients');
     const noIngredientsMsg = document.getElementById('no-ingredients-msg');
     const generateBtn = document.getElementById('generate-btn');
+    const addManualBtn = document.getElementById('add-manual-btn');
     const clearAllBtn = document.getElementById('clear-all-btn');
+
+    // Handle input changes for suggestions
+    inputEl.addEventListener('input', function() {
+        const input = this.value.trim().toLowerCase();
+
+        if (input.length < 2) {
+            suggestionsContainer.classList.add('d-none');
+            return;
+        }
+
+        const matches = ingredientsList.filter(ingredient =>
+            ingredient.toLowerCase().includes(input)
+        );
+
+        if (matches.length > 0) {
+            suggestionsContainer.innerHTML = '';
+            matches.forEach(match => {
+                const div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.textContent = match;
+                div.addEventListener('click', () => {
+                    addIngredient(match);
+                    inputEl.value = '';
+                    suggestionsContainer.classList.add('d-none');
+                });
+                suggestionsContainer.appendChild(div);
+            });
+            suggestionsContainer.classList.remove('d-none');
+        } else {
+            suggestionsContainer.classList.add('d-none');
+        }
+    });
 
     //add ingredient function
     function addIngredient(ingredient) {
@@ -85,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedIngredientsContainer.innerHTML = '';
         selectedIngredientsContainer.appendChild(noIngredientsMsg);
 
-        if (selectedIngredients.size == 0) {
+        if (selectedIngredients.size === 0) {
             noIngredientsMsg.classList.remove('d-none');
             generateBtn.disabled = true;
             clearAllBtn.classList.add('d-none');
@@ -110,7 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 removeIngredient(ingredient);
             });
 
-            selectedIngredientsContainer.appendChild(tag)
+            selectedIngredientsContainer.appendChild(tag);
         });
     }
 })
