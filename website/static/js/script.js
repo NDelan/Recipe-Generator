@@ -9,12 +9,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const clearAllBtn = document.getElementById('clear-all-btn');
     const recipeDisplay = document.getElementById('recipe-display');
     const recipeContent = document.getElementById('recipe-content');
+    const recipeLoading = document.getElementById('recipe-loading');
+    const similarRecipes = document.getElementById('similar-recipes');
+    const similarRecipesContainer = document.getElementById('similar-recipes-container');
+    const similarRecipesLoading = document.getElementById('similar-recipes-loading');
 
     // State
     const selectedIngredients = new Set();
 
     // Event Listeners
     inputEl.addEventListener('input', handleInput);
+    addManualBtn.addEventListener('click', handleAddManual);
+    inputEl.addEventListener('keydown', handleEnterKey);
+    clearAllBtn.addEventListener('click', clearAllIngredients);
+    generateBtn.addEventListener('click', generateRecipe);
 
     // Click outside to close suggestions
     document.addEventListener('click', function(e) {
@@ -65,38 +73,27 @@ document.addEventListener('DOMContentLoaded', function() {
         suggestionsContainer.classList.remove('d-none');
     }
 
-    // Manual add button
-    addManualBtn.addEventListener('click', function() {
+    function handleAddManual() {
         const input = inputEl.value.trim();
         if (input) {
             addIngredient(input);
             inputEl.value = '';
             suggestionsContainer.classList.add('d-none');
         }
-    });
+    }
 
-    // Handle enter key
-    inputEl.addEventListener('keydown', function(e) {
+    function handleEnterKey(e) {
         if (e.key === 'Enter') {
-            const input = this.value.trim();
+            const input = inputEl.value.trim();
             if (input) {
                 addIngredient(input);
-                this.value = '';
+                inputEl.value = '';
                 suggestionsContainer.classList.add('d-none');
             }
             e.preventDefault();
         }
-    });
+    }
 
-    // Clear all ingredients
-    clearAllBtn.addEventListener('click', function() {
-        selectedIngredients.clear();
-        updateIngredientsList();
-        recipeDisplay.classList.add('d-none');
-        document.getElementById('recipe-results').classList.add('d-none');
-    });
-
-    // Add ingredient function
     function addIngredient(ingredient) {
         if (selectedIngredients.has(ingredient)) return;
 
@@ -104,15 +101,13 @@ document.addEventListener('DOMContentLoaded', function() {
         updateIngredientsList();
     }
 
-    // Remove ingredient function
     function removeIngredient(ingredient) {
         selectedIngredients.delete(ingredient);
         updateIngredientsList();
     }
 
-    // Update the ingredients list display
     function updateIngredientsList() {
-        // Clear existing ingredients (proper way)
+        // Clear existing ingredients
         selectedIngredientsContainer.innerHTML = '';
         selectedIngredientsContainer.appendChild(noIngredientsMsg);
 
@@ -145,6 +140,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function clearAllIngredients() {
+        selectedIngredients.clear();
+        updateIngredientsList();
+        recipeDisplay.classList.add('d-none');
+        similarRecipes.classList.add('d-none');
+    }
+// -------------------------------
     // Generate recipes button
     generateBtn.addEventListener('click', function() {
         // Show loading state
