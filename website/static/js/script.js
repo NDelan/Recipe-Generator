@@ -123,6 +123,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Click outside to close suggestions
+    document.addEventListener('click', function(e) {
+        if (!inputEl.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+            suggestionsContainer.classList.add('d-none');
+        }
+    });
+
     //add ingredient function
     function addIngredient(ingredient) {
         if (selectedIngredients.has(ingredient)) return;
