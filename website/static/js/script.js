@@ -47,6 +47,24 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function renderSuggestions(ingredients) {
+        suggestionsContainer.innerHTML = '';
+
+        ingredients.forEach(ingredient => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.textContent = ingredient;
+            div.addEventListener('click', () => {
+                addIngredient(ingredient);
+                inputEl.value = '';
+                suggestionsContainer.classList.add('d-none');
+            });
+            suggestionsContainer.appendChild(div);
+        });
+
+        suggestionsContainer.classList.remove('d-none');
+    }
+
     // Manual add button
     addManualBtn.addEventListener('click', function() {
         const input = inputEl.value.trim();
