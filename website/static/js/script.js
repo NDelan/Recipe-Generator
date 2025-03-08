@@ -100,6 +100,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Manual add button
+    addManualBtn.addEventListener('click', function() {
+        const input = inputEl.value.trim();
+        if (input) {
+            addIngredient(input);
+            inputEl.value = '';
+            suggestionsContainer.classList.add('d-none');
+        }
+    });
+
+    // Handle enter key
+    inputEl.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const input = this.value.trim();
+            if (input) {
+                addIngredient(input);
+                this.value = '';
+                suggestionsContainer.classList.add('d-none');
+            }
+            e.preventDefault();
+        }
+    });
+
     //add ingredient function
     function addIngredient(ingredient) {
         if (selectedIngredients.has(ingredient)) return;
