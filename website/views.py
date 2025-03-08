@@ -1,15 +1,19 @@
-from flask import Blueprint, render_template, redirect, url_for, request, jsonify
-from openai import OpenAI
+from flask import Blueprint, render_template, request, jsonify
+import google.generativeai as genai
 import os
 from dotenv import load_dotenv
+import json
 
 load_dotenv()  # Load API key from .env
 
 # Create a blueprint
 main_blueprint = Blueprint('main', __name__)
-OPENAI_KEY = os.environ.get('OPEN_AI_KEY')
+
+# Configure Gemini API
+genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
+model = genai.GenerativeModel('models/gemini-1.5-pro')
 
 # Home Route
-@main_blueprint.route('/', methods=['GET', 'POST'])
+@main_blueprint.route('/', methods=['GET'])
 def home():
     return render_template("index.html")
