@@ -1,65 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Extended ingredient database - much larger list
-    const ingredientsList = [
-        // Proteins
-        "Chicken Breast", "Chicken Thigh", "Ground Beef", "Beef Steak", "Pork Chop", "Pork Shoulder",
-        "Bacon", "Ham", "Turkey", "Ground Turkey", "Salmon", "Tuna", "Shrimp", "Cod", "Tilapia",
-        "Tofu", "Tempeh", "Seitan", "Eggs", "Egg Whites",
-
-        // Dairy & Alternatives
-        "Milk", "Almond Milk", "Soy Milk", "Oat Milk", "Coconut Milk", "Heavy Cream", "Half and Half",
-        "Butter", "Margarine", "Cheddar Cheese", "Mozzarella", "Parmesan", "Feta", "Goat Cheese",
-        "Cream Cheese", "Cottage Cheese", "Ricotta", "Greek Yogurt", "Yogurt", "Sour Cream",
-
-        // Vegetables
-        "Onion", "Garlic", "Carrot", "Celery", "Bell Pepper", "Spinach", "Kale", "Lettuce", "Arugula",
-        "Tomato", "Potato", "Sweet Potato", "Zucchini", "Eggplant", "Cucumber", "Broccoli", "Cauliflower",
-        "Brussels Sprouts", "Cabbage", "Corn", "Green Beans", "Peas", "Asparagus", "Mushroom",
-        "Radish", "Beetroot", "Turnip", "Artichoke", "Avocado",
-
-        // Fruits
-        "Apple", "Banana", "Orange", "Lemon", "Lime", "Grapefruit", "Strawberry", "Blueberry",
-        "Raspberry", "Blackberry", "Grape", "Pineapple", "Mango", "Peach", "Pear", "Plum", "Cherry",
-        "Watermelon", "Cantaloupe", "Honeydew", "Kiwi", "Fig", "Apricot", "Coconut", "Date",
-
-        // Grains & Starches
-        "Rice", "Brown Rice", "Jasmine Rice", "Basmati Rice", "Quinoa", "Barley", "Oats", "Pasta",
-        "Spaghetti", "Penne", "Linguine", "Fettuccine", "Macaroni", "Couscous", "Bread", "Sandwich Bread",
-        "Baguette", "Sourdough", "Pita", "Tortilla", "Naan", "Bagel", "Breadcrumbs", "Panko", "Flour",
-        "All-Purpose Flour", "Whole Wheat Flour", "Cornmeal", "Cornstarch",
-
-        // Legumes & Nuts
-        "Black Beans", "Kidney Beans", "Chickpeas", "Lentils", "Pinto Beans", "Lima Beans", "Peanut",
-        "Almond", "Walnut", "Pecan", "Cashew", "Pistachio", "Pine Nut", "Sunflower Seed", "Pumpkin Seed",
-        "Chia Seed", "Flax Seed", "Hemp Seed", "Sesame Seed",
-
-        // Herbs & Spices
-        "Salt", "Black Pepper", "Oregano", "Basil", "Thyme", "Rosemary", "Sage", "Parsley", "Cilantro",
-        "Dill", "Mint", "Chives", "Bay Leaf", "Cinnamon", "Nutmeg", "Clove", "Allspice", "Cardamom",
-        "Cumin", "Coriander", "Paprika", "Smoked Paprika", "Chili Powder", "Curry Powder", "Garam Masala",
-        "Turmeric", "Ginger", "Cayenne Pepper", "Red Pepper Flake", "Vanilla Extract", "Almond Extract",
-
-        // Oils & Vinegars
-        "Olive Oil", "Vegetable Oil", "Canola Oil", "Coconut Oil", "Sesame Oil", "Peanut Oil",
-        "White Vinegar", "Red Wine Vinegar", "Balsamic Vinegar", "Apple Cider Vinegar", "Rice Vinegar",
-
-        // Condiments & Sauces
-        "Ketchup", "Mustard", "Dijon Mustard", "Mayonnaise", "Hot Sauce", "Soy Sauce", "Tamari",
-        "Fish Sauce", "Worcestershire Sauce", "BBQ Sauce", "Teriyaki Sauce", "Hoisin Sauce",
-        "Sriracha", "Salsa", "Pesto", "Hummus", "Tahini", "Honey", "Maple Syrup", "Molasses",
-        "Sugar", "Brown Sugar", "Powdered Sugar", "Stevia",
-
-        // Baking
-        "Baking Powder", "Baking Soda", "Yeast", "Chocolate Chips", "Cocoa Powder", "Shredded Coconut",
-        "Dried Fruit", "Raisins", "Cranberries", "Apricot",
-
-        // Prepared & Other
-        "Broth", "Chicken Broth", "Beef Broth", "Vegetable Broth", "Tomato Sauce", "Tomato Paste",
-        "Diced Tomatoes", "Crushed Tomatoes", "Pickle", "Olives", "Capers", "Anchovy", "Sun-Dried Tomato",
-        "Jam", "Jelly", "Peanut Butter", "Almond Butter"
-    ];
-
-    const selectedIngredients = new Set();
+    // DOM Elements
     const inputEl = document.getElementById('ingredient-input');
     const suggestionsContainer = document.getElementById('suggestions-container');
     const selectedIngredientsContainer = document.getElementById('selected-ingredients');
@@ -70,8 +10,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const recipeDisplay = document.getElementById('recipe-display');
     const recipeContent = document.getElementById('recipe-content');
 
-    // Handle input changes for suggestions
-    inputEl.addEventListener('input', function() {
+    // State
+    const selectedIngredients = new Set();
+
+    // Event Listeners
+    inputEl.addEventListener('input', handleInput);
+
+    // Click outside to close suggestions
+    document.addEventListener('click', function(e) {
+        if (!inputEl.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+            suggestionsContainer.classList.add('d-none');
+        }
+    });
+
+    // Functions
+    async function handleInput() {
         const input = this.value.trim().toLowerCase();
 
         if (input.length < 2) {
@@ -79,28 +32,20 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const matches = ingredientsList.filter(ingredient =>
-            ingredient.toLowerCase().includes(input)
-        );
+        try {
+            const response = await fetch(`/api/ingredients?query=${encodeURIComponent(input)}`);
+            const ingredients = await response.json();
 
-        if (matches.length > 0) {
-            suggestionsContainer.innerHTML = '';
-            matches.forEach(match => {
-                const div = document.createElement('div');
-                div.className = 'suggestion-item';
-                div.textContent = match;
-                div.addEventListener('click', () => {
-                    addIngredient(match);
-                    inputEl.value = '';
-                    suggestionsContainer.classList.add('d-none');
-                });
-                suggestionsContainer.appendChild(div);
-            });
-            suggestionsContainer.classList.remove('d-none');
-        } else {
+            if (ingredients.length > 0) {
+                renderSuggestions(ingredients);
+            } else {
+                suggestionsContainer.classList.add('d-none');
+            }
+        } catch (error) {
+            console.error('Error fetching suggestions:', error);
             suggestionsContainer.classList.add('d-none');
         }
-    });
+    }
 
     // Manual add button
     addManualBtn.addEventListener('click', function() {
@@ -122,13 +67,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 suggestionsContainer.classList.add('d-none');
             }
             e.preventDefault();
-        }
-    });
-
-    // Click outside to close suggestions
-    document.addEventListener('click', function(e) {
-        if (!inputEl.contains(e.target) && !suggestionsContainer.contains(e.target)) {
-            suggestionsContainer.classList.add('d-none');
         }
     });
 

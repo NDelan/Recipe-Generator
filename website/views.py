@@ -17,3 +17,24 @@ model = genai.GenerativeModel('models/gemini-1.5-pro')
 @main_blueprint.route('/', methods=['GET'])
 def home():
     return render_template("index.html")
+
+# API endpoint for ingredient suggestions
+@main_blueprint.route('/api/ingredients', methods=['GET'])
+def get_ingredients():
+    # Load ingredients from JSON file
+    with open('website/static/data/ingredients.json', 'r') as f:
+        ingredients = json.load(f)
+
+    query = request.args.get('query', '').lower()
+
+    if query:
+        # Filter ingredients that contain the query
+        filtered_ingredients = [
+            ingredient for ingredient in ingredients
+            if query in ingredient.lower()
+        ]
+        print(filtered_ingredients[:10])
+        return jsonify(filtered_ingredients[:10])  # Limit to 10 suggestions
+    print('nothing')
+    return jsonify([])
+
