@@ -1,7 +1,14 @@
+"""
+This module initializes the Flask application and registers blueprints.
+"""
+
 from flask import Flask
 from .views import main_blueprint
 
 def create_app():
+    """
+    Create and configure the Flask application.
+    """
     app = Flask(__name__)
 
     # Register Blueprints

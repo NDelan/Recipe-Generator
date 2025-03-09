@@ -1,12 +1,17 @@
+"""
+This module defines the views for the website, including API endpoints and home route.
+"""
+
+import os
+import json
 from flask import Blueprint, render_template, request, jsonify
 import google.generativeai as genai
-import os
 from dotenv import load_dotenv
-import json
 
-load_dotenv()  # Load API key from .env
+# Load environment variables
+load_dotenv()
 
-# Create a blueprint
+# Create a blueprint for the main routes
 main_blueprint = Blueprint('main', __name__)
 
 # Configure Gemini API
@@ -16,14 +21,20 @@ model = genai.GenerativeModel('models/gemini-1.5-pro')
 # Home Route
 @main_blueprint.route('/', methods=['GET'])
 def home():
+    """
+    Render the home page.
+    """
     return render_template("index.html")
 
 # API endpoint for ingredient suggestions
 @main_blueprint.route('/api/ingredients', methods=['GET'])
 def get_ingredients():
+    """
+    Get a list of ingredients based on a search query.
+    """
     try:
         # Load ingredients from JSON file
-        with open('website/static/data/ingredients.json', 'r') as f:
+        with open('website/static/data/ingredients.json', 'r', encoding='utf-8') as f:
             ingredients = json.load(f)
 
         query = request.args.get('query', '').lower()
@@ -34,15 +45,19 @@ def get_ingredients():
                 ingredient for ingredient in ingredients
                 if query in ingredient.lower()
             ]
-
             return jsonify(filtered_ingredients[:10])  # Limit to 10 suggestions
         return jsonify([])
-    except Exception as e:
+    except FileNotFoundError:
+        return jsonify({"error": "Ingredients file not found"}), 404
+    except Exception as e: # pylint: disable=broad-except
         return jsonify({"error": str(e)}), 500  # Return 500 error for exceptions
 
 # API endpoint for generating recipes
 @main_blueprint.route('/api/generate-recipe', methods=['POST'])
 def generate_recipe():
+    """
+    Generate a recipe using the provided ingredients.
+    """
     data = request.get_json()
     ingredients = data.get('ingredients', [])
 
@@ -86,9 +101,8 @@ def generate_recipe():
             )
         )
 
-        # Sometimes the model might return markdown-formatted JSON, so we need to clean it
+        # Clean response text if markdown formatting is present
         response_text = response.text
-        # Remove markdown backticks if present
         if response_text.startswith("```json"):
             response_text = response_text.replace("```json", "").replace("```", "")
         elif response_text.startswith("```"):
@@ -97,12 +111,15 @@ def generate_recipe():
         recipe_json = json.loads(response_text.strip())
         return jsonify(recipe_json)
 
-    except Exception as e:
+    except Exception as e: # pylint: disable=broad-except
         return jsonify({"error": str(e)}), 500
 
 # API endpoint for generating similar recipes
 @main_blueprint.route('/api/similar-recipes', methods=['POST'])
 def similar_recipes():
+    """
+    Generate similar recipes based on provided ingredients.
+    """
     data = request.get_json()
     ingredients = data.get('ingredients', [])
 
@@ -112,7 +129,8 @@ def similar_recipes():
     try:
         # Create a prompt for Gemini
         prompt = f"""
-        Generate 3 different recipe ideas (just titles and brief descriptions) using some or all of these ingredients: {', '.join(ingredients)}.
+        Generate 3 different recipe ideas (just titles and brief descriptions)
+        using some or all of these ingredients: {', '.join(ingredients)}.
 
         You must return your response in valid JSON format with the following structure:
         {{
@@ -141,17 +159,15 @@ def similar_recipes():
             )
         )
 
-        # Parse the response
+        # Clean response text if markdown formatting is present
         response_text = response.text
-        # Remove markdown backticks if present
         if response_text.startswith("```json"):
             response_text = response_text.replace("```json", "").replace("```", "")
         elif response_text.startswith("```"):
             response_text = response_text.replace("```", "")
 
         recipes_json = json.loads(response_text.strip())
-
         return jsonify(recipes_json)
 
-    except Exception as e:
+    except Exception as e: # pylint: disable=broad-except
         return jsonify({"error": str(e)}), 500

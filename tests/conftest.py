@@ -6,7 +6,7 @@ It sets up the necessary test client and mock responses for the Recipe Generator
 import os
 import json
 import pytest
-from website import create_app
+from website import create_app # pylint: disable=import-error
 
 @pytest.fixture(scope='module')
 def test_client():
@@ -14,7 +14,7 @@ def test_client():
     os.environ['CONFIG_TYPE'] = 'config.TestingConfig'
     flask_app = create_app()
 
-    with flask_app.test_client() as test_client:
+    with flask_app.test_client() as test_client: # pylint: disable=redefined-outer-name
         yield test_client
 
 def test_ingredient_suggestions():
@@ -99,14 +99,14 @@ def test_api_error_response():
 def recipe_api_mock_client(mocker):
     """Fixture to mock the recipe API calls during tests."""
     os.environ['CONFIG_TYPE'] = 'config.TestingConfig'
-    flask_app = create_app()
+    flask_app = create_app() # pylint: disable=unused-variable
 
     # Mock the actual implementation in views.py
 
     # Mock the get_ingredients method that's called in views.py
-    def mock_ingredients_filter(query):
+    def mock_ingredients_filter(query): # pylint: disable=unused-variable
         # This mocks the behavior inside your get_ingredients route in views.py
-        if not query or len(query) < 2:
+        if not query or len(query) < 2: # pylint: disable=unused-variable
             return []
         if query.lower() == "chicken":
             return test_ingredient_suggestions()
@@ -115,8 +115,10 @@ def recipe_api_mock_client(mocker):
         return ["Ingredient 1", "Ingredient 2"]
 
     # Mock the open method to return test data instead of reading the actual file
-    mock_open = mocker.patch('builtins.open', mocker.mock_open(
-        read_data=json.dumps(["Chicken Breast", "Chicken Thigh", "Chicken Broth", "Beef Steak", "Bacon", "Ham", "Salmon", "Tuna", "Tofu", "Tempeh"])
+    mock_open = mocker.patch('builtins.open', mocker.mock_open( # pylint: disable=unused-variable
+        read_data=json.dumps(["Chicken Breast", "Chicken Thigh", "Chicken Broth",
+                              "Beef Steak", "Bacon", "Ham", "Salmon",
+                              "Tuna", "Tofu", "Tempeh"])
     ))
 
     # Create a mock for model.generate_content that returns different responses
@@ -132,7 +134,7 @@ def recipe_api_mock_client(mocker):
         mock_response.text = json.dumps(test_recipe_response())
         return mock_response
 
-    def mock_response_for_similar_recipes(prompt):
+    def mock_response_for_similar_recipes(prompt): # pylint: disable=unused-variable
         if "InvalidIngredient" in prompt:
             mock_response = mocker.MagicMock()
             mock_response.text = "error data"

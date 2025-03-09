@@ -2,9 +2,7 @@
 Functional tests for the Recipe Generator application views.
 """
 
-import os
 import json
-import pytest
 
 def test_home_route(test_client):
     """
@@ -244,7 +242,8 @@ def test_generate_recipe_api_failure(mocker, recipe_api_mock_client):
     Test behavior when the generate recipe API fails.
     """
     # Mock the generate_content method to simulate an exception
-    mocker.patch('google.generativeai.GenerativeModel.generate_content', side_effect=Exception("API Error"))
+    mocker.patch('google.generativeai.GenerativeModel.generate_content',
+                 side_effect=Exception("API Error"))
 
     ingredients = ["Chicken Breast", "Rice"]
     response = recipe_api_mock_client.post('/api/generate-recipe',
@@ -305,7 +304,8 @@ def test_generate_recipe_timeout(mocker, recipe_api_mock_client):
     """
     Test when the AI API call times out.
     """
-    mocker.patch('google.generativeai.GenerativeModel.generate_content', side_effect=TimeoutError("Request timed out"))
+    mocker.patch('google.generativeai.GenerativeModel.generate_content',
+                 side_effect=TimeoutError("Request timed out"))
 
     response = recipe_api_mock_client.post('/api/generate-recipe',
                                            json={'ingredients': ["Chicken"]},
@@ -379,8 +379,9 @@ def test_similar_recipes_markdown_json(mocker, recipe_api_mock_client):
 
 def test_similar_recipes_generic_markdown(mocker, recipe_api_mock_client):
     """
-    Test when the AI returns JSON wrapped in generic markdown format for similar recipes.
-    This tests the specific branch where response starts with ``` but not ```json in similar_recipes route
+    Test when the AI returns JSON wrapped in generic markdown
+    format for similar recipes. This tests the specific branch where response
+    starts with ``` but not ```json in similar_recipes route
     """
     # Create a mock response with generic markdown format
     mock_response = mocker.MagicMock()
@@ -409,5 +410,3 @@ def test_similar_recipes_generic_markdown(mocker, recipe_api_mock_client):
     assert isinstance(data["recipes"], list)
     assert len(data["recipes"]) > 0
     assert data["recipes"][0]["title"] == "Test Recipe 1"
-
-# PYTHONPATH=$(pwd) pytest -v --cov=website tests/functional/test_views.py
