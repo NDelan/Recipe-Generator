@@ -21,21 +21,24 @@ def home():
 # API endpoint for ingredient suggestions
 @main_blueprint.route('/api/ingredients', methods=['GET'])
 def get_ingredients():
-    # Load ingredients from JSON file
-    with open('website/static/data/ingredients.json', 'r') as f:
-        ingredients = json.load(f)
+    try:
+        # Load ingredients from JSON file
+        with open('website/static/data/ingredients.json', 'r') as f:
+            ingredients = json.load(f)
 
-    query = request.args.get('query', '').lower()
+        query = request.args.get('query', '').lower()
 
-    if query:
-        # Filter ingredients that contain the query
-        filtered_ingredients = [
-            ingredient for ingredient in ingredients
-            if query in ingredient.lower()
-        ]
+        if query and len(query) >= 2:
+            # Filter ingredients that contain the query
+            filtered_ingredients = [
+                ingredient for ingredient in ingredients
+                if query in ingredient.lower()
+            ]
 
-        return jsonify(filtered_ingredients[:10])  # Limit to 10 suggestions
-    return jsonify([])
+            return jsonify(filtered_ingredients[:10])  # Limit to 10 suggestions
+        return jsonify([])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500  # Return 500 error for exceptions
 
 # API endpoint for generating recipes
 @main_blueprint.route('/api/generate-recipe', methods=['POST'])

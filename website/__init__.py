@@ -1,5 +1,5 @@
 from flask import Flask
-from website.views import main_blueprint
+from .views import main_blueprint
 
 def create_app():
     app = Flask(__name__)
@@ -10,4 +10,4 @@ def create_app():
     return app
 
 if __name__ == "__main__":
-    app = create_app()
+    create_app()
