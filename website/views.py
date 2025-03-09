@@ -96,3 +96,59 @@ def generate_recipe():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# API endpoint for generating similar recipes
+@main_blueprint.route('/api/similar-recipes', methods=['POST'])
+def similar_recipes():
+    data = request.get_json()
+    ingredients = data.get('ingredients', [])
+
+    if not ingredients:
+        return jsonify({"error": "No ingredients provided"}), 400
+
+    try:
+        # Create a prompt for Gemini
+        prompt = f"""
+        Generate 3 different recipe ideas (just titles and brief descriptions) using some or all of these ingredients: {', '.join(ingredients)}.
+
+        You must return your response in valid JSON format with the following structure:
+        {{
+            "recipes": [
+                {{
+                    "title": "Recipe 1 Name",
+                    "description": "Brief description",
+                    "cook_time": "20 minutes",
+                    "difficulty": "Easy/Medium/Hard",
+                    "matching_ingredients": ["ingredient1", "ingredient2"]
+                }},
+                ...
+            ]
+        }}
+
+        Do not include any text before or after the JSON. Only return valid JSON.
+        """
+
+        # Call Gemini API
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.8,
+                top_p=0.95,
+                max_output_tokens=800,
+            )
+        )
+
+        # Parse the response
+        response_text = response.text
+        # Remove markdown backticks if present
+        if response_text.startswith("```json"):
+            response_text = response_text.replace("```json", "").replace("```", "")
+        elif response_text.startswith("```"):
+            response_text = response_text.replace("```", "")
+
+        recipes_json = json.loads(response_text.strip())
+
+        return jsonify(recipes_json)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

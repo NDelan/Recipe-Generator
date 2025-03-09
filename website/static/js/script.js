@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
             renderRecipe(recipeData);
 
             // Generate similar recipes
-            // generateSimilarRecipes(ingredientsArray);
+            generateSimilarRecipes(ingredientsArray);
             // showSampleRecipes();
 
         } catch (error) {
@@ -238,4 +238,84 @@ document.addEventListener('DOMContentLoaded', function() {
         recipeLoading.classList.add('d-none');
         recipeContent.classList.remove('d-none');
     }
+
+    async function generateSimilarRecipes(ingredients) {
+        similarRecipes.classList.remove('d-none');
+        similarRecipesContainer.innerHTML = '';
+        similarRecipesLoading.classList.remove('d-none');
+
+        try {
+            const response = await fetch('/api/similar-recipes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ ingredients: ingredients }),
+            });
+
+            const data = await response.json();
+
+            // Render similar recipes
+            renderSimilarRecipes(data.recipes);
+
+        } catch (error) {
+            console.error('Error generating similar recipes:', error);
+            similarRecipesLoading.classList.add('d-none');
+            similarRecipesContainer.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Unable to load additional recipe suggestions.
+                </div>
+            `;
+        }
+    }
+
+    function renderSimilarRecipes(recipes) {
+        similarRecipesLoading.classList.add('d-none');
+
+        recipes.forEach(recipe => {
+            const matchingCount = recipe.matching_ingredients ? recipe.matching_ingredients.length : 0;
+            const ingredientsArray = Array.from(selectedIngredients);
+
+            const card = document.createElement('div');
+            card.className = 'col-md-4';
+            card.innerHTML = `
+                <div class="card recipe-card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">${recipe.title}</h5>
+                        <p class="card-text">${recipe.description}</p>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="badge bg-info">${recipe.cook_time}</span>
+                            <span class="badge bg-secondary">${recipe.difficulty}</span>
+                        </div>
+                        ${recipe.matching_ingredients ? `
+                            <p class="card-text text-muted small">
+                                <strong>Using:</strong> ${recipe.matching_ingredients.join(', ')}
+                            </p>
+                        ` : ''}
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-sm btn-outline-primary w-100 generate-this-btn">Make This Recipe</button>
+                    </div>
+                </div>
+            `;
+
+            // Add event listener to the "Make This Recipe" button
+            card.querySelector('.generate-this-btn').addEventListener('click', () => {
+                // Clear ingredients and add only those from this recipe
+                selectedIngredients.clear();
+                if (recipe.matching_ingredients) {
+                    recipe.matching_ingredients.forEach(ing => selectedIngredients.add(ing));
+                }
+                updateIngredientsList();
+
+                // Generate the recipe
+                generateRecipe();
+            });
+
+            similarRecipesContainer.appendChild(card);
+        });
+    }
+
+
 });
