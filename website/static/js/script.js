@@ -17,12 +17,43 @@ document.addEventListener('DOMContentLoaded', function() {
     // State
     const selectedIngredients = new Set();
 
+    // Image mapping for recipe categories (used for placeholder images)
+    const categoryImages = {
+        'chicken': 'chicken-dish.jpg',
+        'beef': 'beef-dish.jpg',
+        'pork': 'pork-dish.jpg',
+        'fish': 'fish-dish.jpg',
+        'seafood': 'seafood-dish.jpg',
+        'vegetarian': 'vegetarian-dish.jpg',
+        'vegan': 'vegan-dish.jpg',
+        'pasta': 'pasta-dish.jpg',
+        'soup': 'soup-dish.jpg',
+        'salad': 'salad-dish.jpg',
+        'dessert': 'dessert.jpg',
+        'breakfast': 'breakfast.jpg',
+        'mexican': 'mexican-food.jpg',
+        'italian': 'italian-food.jpg',
+        'asian': 'asian-food.jpg',
+        'default': 'default-dish.jpg'
+    };
+
     // Event Listeners
     inputEl.addEventListener('input', handleInput);
     addManualBtn.addEventListener('click', handleAddManual);
     inputEl.addEventListener('keydown', handleEnterKey);
     clearAllBtn.addEventListener('click', clearAllIngredients);
     generateBtn.addEventListener('click', generateRecipe);
+
+    // Add smooth scrolling for the "Get Started" button
+    const getStartedBtn = document.querySelector('a[href="#ingredient-section"]');
+    if (getStartedBtn) {
+        getStartedBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelector(this.getAttribute('href')).scrollIntoView({
+                behavior: 'smooth'
+            });
+        });
+    }
 
     // Click outside to close suggestions
     document.addEventListener('click', function(e) {
@@ -99,6 +130,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         selectedIngredients.add(ingredient);
         updateIngredientsList();
+
+        // Add animation effect to newly added ingredient
+        setTimeout(() => {
+            const newTag = selectedIngredientsContainer.lastChild;
+            if (newTag && newTag.classList.contains('ingredient-tag')) {
+                newTag.classList.add('highlight');
+                setTimeout(() => newTag.classList.remove('highlight'), 500);
+            }
+        }, 10);
     }
 
     function removeIngredient(ingredient) {
@@ -147,6 +187,22 @@ document.addEventListener('DOMContentLoaded', function() {
         similarRecipes.classList.add('d-none');
     }
 
+    // Determine the appropriate hero image based on recipe title and ingredients
+    function getRecipeImage(recipe) {
+        const title = recipe.title.toLowerCase();
+        const ingredients = recipe.ingredients.join(' ').toLowerCase();
+
+        // Check title and ingredients for keywords
+        for (const [category, image] of Object.entries(categoryImages)) {
+            if (title.includes(category) || ingredients.includes(category)) {
+                return `url(${window.location.origin}/static/img/recipe.avif)`;
+            }
+        }
+
+        // Default image if no category matches
+        return `url(${window.location.origin}/static/img/recipe.avif)`;
+    }
+
     async function generateRecipe() {
         if (selectedIngredients.size === 0) return;
 
@@ -172,20 +228,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({ ingredients: ingredientsArray }),
             });
+
+            if (!recipeResponse.ok) {
+                throw new Error(`API error: ${recipeResponse.status}`);
+            }
+
             const recipeData = await recipeResponse.json();
+
+            // Check if there's an error in the response
+            if (recipeData.error) {
+                throw new Error(recipeData.error);
+            }
+
             // Display recipe
             renderRecipe(recipeData);
 
             // Generate similar recipes
             generateSimilarRecipes(ingredientsArray);
-            // showSampleRecipes();
 
         } catch (error) {
             console.error('Error generating recipe:', error);
             recipeContent.innerHTML = `
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-circle me-2"></i>
-                    Sorry, there was an error generating your recipe. Please try again.
+                    Sorry, there was an error generating your recipe: ${error.message || 'Please try again.'}
                 </div>
             `;
             recipeLoading.classList.add('d-none');
@@ -194,49 +260,73 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function renderRecipe(recipe) {
+        // Set hero image based on recipe content
+        const heroBackground = getRecipeImage(recipe);
+
         recipeContent.innerHTML = `
-            <h2 class="recipe-title">${recipe.title}</h2>
-            <p class="recipe-description">${recipe.description}</p>
-
-            <div class="recipe-meta">
-                <div class="recipe-meta-item">
-                    <i class="fas fa-clock"></i>
-                    <span>${recipe.cook_time}</span>
-                </div>
-                <div class="recipe-meta-item">
-                    <i class="fas fa-utensils"></i>
-                    <span>${recipe.servings} servings</span>
-                </div>
-                <div class="recipe-meta-item">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Difficulty: ${recipe.difficulty}</span>
+            <div class="recipe-hero" style="background-image: ${heroBackground}">
+                <div class="recipe-hero-overlay">
+                    <h2 class="recipe-title">${recipe.title}</h2>
                 </div>
             </div>
 
-            <div class="recipe-section">
-                <h3>Ingredients</h3>
-                <ul class="recipe-ingredients">
-                    ${recipe.ingredients.map(ingredient => `<li>${ingredient}</li>`).join('')}
-                </ul>
-            </div>
+            <div class="card-body">
+                <p class="recipe-description">${recipe.description}</p>
 
-            <div class="recipe-section">
-                <h3>Instructions</h3>
-                <ol class="recipe-instructions">
-                    ${recipe.instructions.map(instruction => `<li>${instruction}</li>`).join('')}
-                </ol>
-            </div>
+                <div class="recipe-meta">
+                    <div class="recipe-meta-item">
+                        <i class="fas fa-clock"></i>
+                        <span>${recipe.cook_time}</span>
+                    </div>
+                    <div class="recipe-meta-item">
+                        <i class="fas fa-utensils"></i>
+                        <span>${recipe.servings} servings</span>
+                    </div>
+                    <div class="recipe-meta-item">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Difficulty: ${recipe.difficulty}</span>
+                    </div>
+                </div>
 
-            <div class="text-center mt-4">
-                <button class="btn btn-outline-primary" onclick="window.print()">
-                    <i class="fas fa-print me-2"></i> Print Recipe
-                </button>
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="recipe-section">
+                            <h3><i class="fas fa-carrot me-2"></i>Ingredients</h3>
+                            <ul class="recipe-ingredients">
+                                ${recipe.ingredients.map(ingredient => `<li>${ingredient}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="recipe-section">
+                            <h3><i class="fas fa-list-ol me-2"></i>Instructions</h3>
+                            <ol class="recipe-instructions">
+                                ${recipe.instructions.map(instruction => `<li>${instruction}</li>`).join('')}
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <button class="btn btn-outline-primary" onclick="window.print()">
+                        <i class="fas fa-print me-2"></i> Print Recipe
+                    </button>
+                    <button class="btn btn-outline-success ms-2" onclick="navigator.share({title: '${recipe.title}', text: 'Check out this recipe I found!'})">
+                        <i class="fas fa-share-alt me-2"></i> Share Recipe
+                    </button>
+                </div>
             </div>
         `;
 
         // Hide loading and show content
         recipeLoading.classList.add('d-none');
         recipeContent.classList.remove('d-none');
+
+        // Add animation
+        recipeContent.style.opacity = '0';
+        setTimeout(() => {
+            recipeContent.style.opacity = '1';
+        }, 100);
     }
 
     async function generateSimilarRecipes(ingredients) {
@@ -253,7 +343,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({ ingredients: ingredients }),
             });
 
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+
             const data = await response.json();
+
+            // Check if there's an error or if recipes are missing
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            if (!data.recipes || !Array.isArray(data.recipes)) {
+                throw new Error("Invalid recipe format received");
+            }
 
             // Render similar recipes
             renderSimilarRecipes(data.recipes);
@@ -264,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
             similarRecipesContainer.innerHTML = `
                 <div class="alert alert-warning">
                     <i class="fas fa-exclamation-triangle me-2"></i>
-                    Unable to load additional recipe suggestions.
+                    Unable to load additional recipe suggestions: ${error.message || 'Please try again.'}
                 </div>
             `;
         }
@@ -273,14 +376,24 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderSimilarRecipes(recipes) {
         similarRecipesLoading.classList.add('d-none');
 
-        recipes.forEach(recipe => {
+        recipes.forEach((recipe, index) => {
             const matchingCount = recipe.matching_ingredients ? recipe.matching_ingredients.length : 0;
             const ingredientsArray = Array.from(selectedIngredients);
+
+            // Determine image for this recipe
+            let recipeImg = 'other-recipe.avif';
+            for (const [category, image] of Object.entries(categoryImages)) {
+                if (recipe.title.toLowerCase().includes(category)) {
+                    recipeImg = image;
+                    break;
+                }
+            }
 
             const card = document.createElement('div');
             card.className = 'col-md-4';
             card.innerHTML = `
                 <div class="card recipe-card mb-3">
+                    <img src="${window.location.origin}/static/img/other-recipe.avif" class="card-img-top" alt="${recipe.title}">
                     <div class="card-body">
                         <h5 class="card-title">${recipe.title}</h5>
                         <p class="card-text">${recipe.description}</p>
@@ -313,9 +426,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 generateRecipe();
             });
 
+            // Add animation delay based on index
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+
+            setTimeout(() => {
+                card.style.transition = 'all 0.3s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 100 + (index * 100));
+
             similarRecipesContainer.appendChild(card);
         });
     }
 
-
+    // Initialize tooltips if Bootstrap 5 is used
+    if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
 });
