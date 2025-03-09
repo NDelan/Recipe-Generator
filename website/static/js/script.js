@@ -146,130 +146,96 @@ document.addEventListener('DOMContentLoaded', function() {
         recipeDisplay.classList.add('d-none');
         similarRecipes.classList.add('d-none');
     }
-// -------------------------------
-    // Generate recipes button
-    generateBtn.addEventListener('click', function() {
-        // Show loading state
-        this.disabled = true;
-        this.innerHTML = '<span class="loading me-2"></span> Generating...';
 
-        // Display recipe section
-        setTimeout(() => {
-            recipeDisplay.classList.remove('d-none');
-            document.getElementById('recipe-results').classList.remove('d-none');
+    async function generateRecipe() {
+        if (selectedIngredients.size === 0) return;
 
-            // Scroll to recipe display
-            recipeDisplay.scrollIntoView({ behavior: 'smooth' });
+        // Show loading states
+        recipeDisplay.classList.remove('d-none');
+        recipeContent.classList.add('d-none');
+        recipeLoading.classList.remove('d-none');
 
-            // Reset button
-            this.disabled = false;
-            this.innerHTML = '<i class="fas fa-magic me-1"></i> Generate Recipes';
+        similarRecipes.classList.add('d-none');
 
-            // Display placeholder recipe
-            recipeContent.innerHTML = getPlaceholderRecipe();
+        // Scroll to recipe display
+        recipeDisplay.scrollIntoView({ behavior: 'smooth' });
 
-            // Show sample recipes
-            showSampleRecipes();
-        }, 1500);
-    });
+        // Convert set to array
+        const ingredientsArray = Array.from(selectedIngredients);
 
-    // Get placeholder recipe content
-    function getPlaceholderRecipe() {
-        const ingredients = Array.from(selectedIngredients);
-        const mainIngredients = ingredients.slice(0, Math.min(3, ingredients.length));
+        try {
+            // Generate main recipe
+            const recipeResponse = await fetch('/api/generate-recipe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ ingredients: ingredientsArray }),
+            });
+            const recipeData = await recipeResponse.json();
+            // Display recipe
+            renderRecipe(recipeData);
 
-        return `
-            <div class="mb-4">
-                <h3>${mainIngredients.join(' & ')} ${mainIngredients.length < 3 ? 'Delight' : 'Special'}</h3>
-                <p class="text-muted">A delicious recipe using your selected ingredients</p>
+            // Generate similar recipes
+            // generateSimilarRecipes(ingredientsArray);
+            // showSampleRecipes();
+
+        } catch (error) {
+            console.error('Error generating recipe:', error);
+            recipeContent.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Sorry, there was an error generating your recipe. Please try again.
+                </div>
+            `;
+            recipeLoading.classList.add('d-none');
+            recipeContent.classList.remove('d-none');
+        }
+    }
+
+    function renderRecipe(recipe) {
+        recipeContent.innerHTML = `
+            <h2 class="recipe-title">${recipe.title}</h2>
+            <p class="recipe-description">${recipe.description}</p>
+
+            <div class="recipe-meta">
+                <div class="recipe-meta-item">
+                    <i class="fas fa-clock"></i>
+                    <span>${recipe.cook_time}</span>
+                </div>
+                <div class="recipe-meta-item">
+                    <i class="fas fa-utensils"></i>
+                    <span>${recipe.servings} servings</span>
+                </div>
+                <div class="recipe-meta-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Difficulty: ${recipe.difficulty}</span>
+                </div>
             </div>
 
-            <div class="mb-4">
-                <h4>Ingredients:</h4>
-                <ul>
-                    ${ingredients.map(ing => `<li>${ing}</li>`).join('')}
-                    <li>Salt and pepper to taste</li>
+            <div class="recipe-section">
+                <h3>Ingredients</h3>
+                <ul class="recipe-ingredients">
+                    ${recipe.ingredients.map(ingredient => `<li>${ingredient}</li>`).join('')}
                 </ul>
             </div>
 
-            <div class="mb-4">
-                <h4>Instructions:</h4>
-                <ol>
-                    <li>Prepare all ingredients by washing and chopping as needed.</li>
-                    <li>In a large pan, heat oil over medium heat.</li>
-                    <li>Add your base ingredients and cook until softened.</li>
-                    <li>Combine remaining ingredients and cook thoroughly.</li>
-                    <li>Season with salt and pepper to taste.</li>
-                    <li>Serve hot and enjoy your meal!</li>
+            <div class="recipe-section">
+                <h3>Instructions</h3>
+                <ol class="recipe-instructions">
+                    ${recipe.instructions.map(instruction => `<li>${instruction}</li>`).join('')}
                 </ol>
             </div>
+
+            <div class="text-center mt-4">
+                <button class="btn btn-outline-primary" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i> Print Recipe
+                </button>
+            </div>
         `;
-    }
 
-    // Show sample recipes for demonstration
-    function showSampleRecipes() {
-        const recipesContainer = document.getElementById('recipes-container');
-        recipesContainer.innerHTML = '';
-
-        const sampleRecipes = [
-            {
-                title: "Quick Veggie Stir Fry",
-                ingredients: ["Bell Pepper", "Broccoli", "Garlic", "Soy Sauce", "Rice"],
-                time: "20 mins",
-                difficulty: "Easy"
-            },
-            {
-                title: "Simple Chicken Pasta",
-                ingredients: ["Chicken Breast", "Pasta", "Tomato", "Basil", "Olive Oil", "Garlic"],
-                time: "30 mins",
-                difficulty: "Medium"
-            },
-            {
-                title: "Hearty Bean Soup",
-                ingredients: ["Black Beans", "Onion", "Garlic", "Cumin", "Cayenne Pepper"],
-                time: "45 mins",
-                difficulty: "Easy"
-            }
-        ];
-
-        sampleRecipes.forEach(recipe => {
-            const matching = recipe.ingredients.filter(ing =>
-                selectedIngredients.has(ing)
-            ).length;
-
-            const matchPercentage = Math.round((matching / recipe.ingredients.length) * 100);
-
-            const recipeCard = document.createElement('div');
-            recipeCard.className = 'col-md-6 col-lg-4';
-            recipeCard.innerHTML = `
-                <div class="card recipe-card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">${recipe.title}</h5>
-                        <div class="mb-3">
-                            <span class="badge bg-success">${recipe.time}</span>
-                            <span class="badge bg-info">${recipe.difficulty}</span>
-                        </div>
-                        <div class="progress mb-3" title="${matchPercentage}% ingredients match">
-                            <div class="progress-bar bg-success" style="width: ${matchPercentage}%">
-                                ${matchPercentage}% match
-                            </div>
-                        </div>
-                        <p><strong>You'll need:</strong></p>
-                        <ul>
-                            ${recipe.ingredients.map(ing => `
-                                <li class="${selectedIngredients.has(ing) ? 'text-success' : 'text-muted'}">
-                                    ${ing} ${selectedIngredients.has(ing) ? '✓' : ''}
-                                </li>
-                            `).join('')}
-                        </ul>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn btn-outline-primary w-100">View Recipe</button>
-                    </div>
-                </div>
-            `;
-
-            recipesContainer.appendChild(recipeCard);
-        });
+        // Hide loading and show content
+        recipeLoading.classList.add('d-none');
+        recipeContent.classList.remove('d-none');
     }
 });

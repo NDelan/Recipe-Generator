@@ -33,8 +33,66 @@ def get_ingredients():
             ingredient for ingredient in ingredients
             if query in ingredient.lower()
         ]
-        print(filtered_ingredients[:10])
+
         return jsonify(filtered_ingredients[:10])  # Limit to 10 suggestions
-    print('nothing')
     return jsonify([])
 
+# API endpoint for generating recipes
+@main_blueprint.route('/api/generate-recipe', methods=['POST'])
+def generate_recipe():
+    data = request.get_json()
+    ingredients = data.get('ingredients', [])
+
+    if not ingredients:
+        return jsonify({"error": "No ingredients provided"}), 400
+
+    try:
+        # Create a prompt for Gemini
+        prompt = f"""
+        Create a detailed recipe using some or all of these ingredients: {', '.join(ingredients)}.
+
+        You must return your response in valid JSON format with the following structure:
+        {{
+            "title": "Recipe Name",
+            "description": "Brief description of the dish",
+            "ingredients": [
+                "1 cup ingredient 1",
+                "2 tbsp ingredient 2",
+                ...
+            ],
+            "instructions": [
+                "Step 1: Do this",
+                "Step 2: Do that",
+                ...
+            ],
+            "cook_time": "30 minutes",
+            "servings": 4,
+            "difficulty": "Easy/Medium/Hard"
+        }}
+
+        Do not include any text before or after the JSON. Only return valid JSON.
+        """
+
+        # Call Gemini API
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.7,
+                top_p=0.95,
+                max_output_tokens=1000,
+            )
+        )
+
+        # Sometimes the model might return markdown-formatted JSON, so we need to clean it
+        response_text = response.text
+        # Remove markdown backticks if present
+        if response_text.startswith("```json"):
+            response_text = response_text.replace("```json", "").replace("```", "")
+        elif response_text.startswith("```"):
+            response_text = response_text.replace("```", "")
+
+        recipe_json = json.loads(response_text.strip())
+        return jsonify(recipe_json)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
